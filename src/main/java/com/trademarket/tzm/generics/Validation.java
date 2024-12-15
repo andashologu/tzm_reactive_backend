@@ -3,7 +3,6 @@ package com.trademarket.tzm.generics;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import com.trademarket.tzm.user.validation.ValidationException;
@@ -62,6 +61,7 @@ public class Validation<T> {
                     // Assign simple fields directly
                     entityField.set(entity, value);
                 }
+                
             } catch (NoSuchFieldException e) {
                 errors.put(field, "Invalid field: " + field);
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
@@ -73,8 +73,10 @@ public class Validation<T> {
 
         // Validate each updated field
         updates.forEach((field, _) -> {
+            System.out.println("to validate field: "+field);
             Set<ConstraintViolation<Object>> violations = validator.validateProperty(entity, field);
             violations.forEach(violation -> errors.put(field, violation.getMessage()));
+            System.out.println("errors: "+errors);
         });
 
         if (!errors.isEmpty()) {

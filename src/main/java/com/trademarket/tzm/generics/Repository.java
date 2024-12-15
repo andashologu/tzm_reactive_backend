@@ -2,9 +2,10 @@ package com.trademarket.tzm.generics;
 
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Component;
+
+import io.r2dbc.postgresql.codec.Json;
 import reactor.core.publisher.Mono;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 
 @Component
@@ -16,37 +17,47 @@ public class Repository<T> {
         this.databaseClient = databaseClient;
     }
 
-    public Mono<T> updateFields(Long id, Map<String, Object> fieldsToUpdate, Class<T> entityClass, T entity) {
-        if (fieldsToUpdate.isEmpty()) return Mono.error(new IllegalArgumentException("No fields to update"));
-
+    public Mono<Map<String, Object>> updateFields(Long id, Map<String, Object> fieldsToUpdate, Class<T> entityClass, T entity) {
+        if (fieldsToUpdate.isEmpty()) {
+            return Mono.error(new IllegalArgumentException("No fields to update"));
+        }
+    
         String tableName = getTableName(entityClass);
         StringBuilder sql = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
-
-        fieldsToUpdate.forEach((key, _) -> sql.append(key).append(" = :").append(key).append(", "));
-
-        sql.setLength(sql.length() - 2);
-
+    
+        fieldsToUpdate.forEach((key, _) -> sql.append(toSnakeCase(key)).append(" = :").append(key).append(", "));
+        sql.setLength(sql.length() - 2); // Remove trailing ", "
+    
         sql.append(" WHERE id = :id");
-
+    
         DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql.toString()).bind("id", id);
-        Class<?> entityObj = entity.getClass();
+    
         for (Map.Entry<String, Object> entry : fieldsToUpdate.entrySet()) {
-            spec = spec.bind(entry.getKey(), entry.getValue());
-            try {
-                Field entityField = entityObj.getDeclaredField(entry.getKey());
-                entityField.setAccessible(true);
-                entityField.set(entity, entry.getValue());
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                return Mono.error(new RuntimeException("Failed to update entity field: " + entry.getKey(), e));
+            String key = entry.getKey();
+            Object value = entry.getValue();
+    
+            if (value instanceof Map) {
+                // Handle nested fields: serialize to JSON
+                Json serializedValue = JsonConversion.objectToJson(value);
+                spec = spec.bind(key, serializedValue);
+            } else {
+                spec = spec.bind(key, value);
             }
         }
-
+    
         return spec.fetch().rowsUpdated()
             .flatMap(rowsUpdated -> {
-                if (rowsUpdated == 0) return Mono.error(new IllegalArgumentException("Entity not found with id: " + id));
-                return Mono.just(entity);
+                if (rowsUpdated == 0) {
+                    return Mono.error(new IllegalArgumentException("Entity not found with id: " + id));
+                }
+                return Mono.just(fieldsToUpdate); // Return only updated fields
             });
     }
+    
+    private String toSnakeCase(String camelCase) {
+        return camelCase.replaceAll("([a-z])([A-Z]+)", "$1_$2").toLowerCase();
+    }
+    
 
     private String getTableName(Class<T> entityClass) {
         if (entityClass.isAnnotationPresent(org.springframework.data.relational.core.mapping.Table.class))

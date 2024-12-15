@@ -81,7 +81,7 @@ public class UserService {
             .flatMap(userRepository::save);
     }
     
-    public Mono<UserEntity> updateUser(Long id, Map<String, Object> updates) {
+    public Mono<Object> updateUser(Long id, Map<String, Object> updates) {
         return userRepository.findById(id)
             .switchIfEmpty(Mono.error(new ValidationException(Map.of("id", "User not found"))))
             .flatMap(existingUser -> 

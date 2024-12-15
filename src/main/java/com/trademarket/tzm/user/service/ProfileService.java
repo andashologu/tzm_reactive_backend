@@ -7,8 +7,6 @@ import com.trademarket.tzm.user.model.Address;
 import com.trademarket.tzm.user.model.Preferences;
 import com.trademarket.tzm.user.model.ProfileEntity;
 import com.trademarket.tzm.user.model.Settings;
-import com.trademarket.tzm.user.repository.ProfileRepository;
-import com.trademarket.tzm.user.validation.ValidationException;
 
 import io.r2dbc.postgresql.codec.Json;
 
@@ -25,13 +23,11 @@ import java.util.Map;
 public class ProfileService {
 
     private final DatabaseClient databaseClient;
-    private final ProfileRepository profileRepository;
     private final Validation<ProfileEntity> customValidation;
     private final Repository<ProfileEntity> customRepository;
 
-    public ProfileService(DatabaseClient databaseClient, ProfileRepository profileRepository, Validation<ProfileEntity> customValidation, Repository<ProfileEntity> customRepository) {
+    public ProfileService(DatabaseClient databaseClient, Validation<ProfileEntity> customValidation, Repository<ProfileEntity> customRepository) {
         this.databaseClient = databaseClient;
-        this.profileRepository = profileRepository;
         this.customValidation = customValidation;
         this.customRepository = customRepository;
     }
@@ -88,16 +84,21 @@ public class ProfileService {
             });
     }
 
-    public Mono<ProfileEntity> updateProfile(Long user_id, Map<String, Object> updates) {
-        return profileRepository.findUserIdByUserId(user_id)
-            .switchIfEmpty(Mono.error(new ValidationException(Map.of("id", "Profile not found"))))
-            .flatMap(existingProfile -> 
-                Mono.fromCallable(() -> {
-                    customValidation.validate(new ProfileEntity(), updates);
-                    return existingProfile;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(_ -> customRepository.updateFields(user_id, updates, ProfileEntity.class, existingProfile))
-            );
+    public Mono<Object> updateProfile(ProfileEntity profileEntity, Map<String, Object> updates) {
+        return Mono.fromCallable(() -> {
+                // Validate updates
+                customValidation.validate(profileEntity, updates);
+                return profileEntity; // Return the validated profile entity
+            })
+            .subscribeOn(Schedulers.boundedElastic())
+            .flatMap(validatedProfile -> {
+                Long id = validatedProfile.getId(); // Ensure we get the ID from the entity
+                if (id == null) {
+                    return Mono.error(new IllegalArgumentException("Profile ID cannot be null for update"));
+                }
+                // Perform the update using the custom repository
+                return customRepository.updateFields(id, updates, ProfileEntity.class, validatedProfile);
+            });
     }
+    
 }

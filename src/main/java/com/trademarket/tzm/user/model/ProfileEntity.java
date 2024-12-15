@@ -1,6 +1,7 @@
 package com.trademarket.tzm.user.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import com.trademarket.tzm.user.validation.UniqueUserId;
@@ -24,7 +25,12 @@ public class ProfileEntity {
     @NotEmpty(message = "firstname reuired")
     private String firstname;
     
-    private String lastname, profilePicture, bio, phone, website;
+    private String lastname;
+
+    @Column("profile_picture")
+    String profilePicture;
+    
+    String bio, phone, website;
 
     @Valid
     private Address address;
@@ -55,7 +61,6 @@ public class ProfileEntity {
         this.address = address;
         this.preferences = preferences;
         this.settings = settings;
-        this.createdAt = LocalDate.now();
         this.updatedAt = LocalDate.now();
     }
 
