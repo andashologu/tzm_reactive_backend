@@ -70,7 +70,6 @@ public class Validation<T> {
                 errors.put(field, "Invalid value for field: " + field);
             }
         });
-
         // Validate each updated field
         updates.forEach((field, _) -> {
             System.out.println("to validate field: "+field);
