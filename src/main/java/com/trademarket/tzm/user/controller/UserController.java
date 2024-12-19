@@ -33,6 +33,7 @@ public class UserController {
         return userRepository.findAll();
     }
 
+/*
     @GetMapping
     public Flux<UserEntity> searchUsers(
         @RequestParam String search,
@@ -40,7 +41,8 @@ public class UserController {
     ) {
         return userService.searchUsers(search, active);
     }
-
+*/
+    
     @GetMapping("/{id}")
     public Mono<ResponseEntity<Object>> getUserById(@PathVariable Long id) {
         return userService.getUserById(id)

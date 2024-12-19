@@ -28,37 +28,34 @@ public class Validation<T> {
         violations.forEach(violation -> {
             errors.put(violation.getPropertyPath().toString(), violation.getMessage());
         });
+        System.out.println("errors: "+errors);
         if (!errors.isEmpty()) throw new ValidationException(errors);
     }
 
-    @SuppressWarnings("unchecked")// to remove
     public void validate(Object entity, Map<String, Object> updates) throws ValidationException {
         Map<String, String> errors = new HashMap<>();
-
         updates.forEach((field, value) -> {
             try {
                 Field entityField = entity.getClass().getDeclaredField(field);
                 entityField.setAccessible(true);
 
                 if (value instanceof Map && value != null) {
-                    // Handle nested objects
                     Object nestedObject = entityField.getType().getDeclaredConstructor().newInstance();
+                    Map<String, Object> nestedMap = MapConverter.toNestedMap(value);
                     try {
                         
-                        validate(nestedObject, (Map<String, Object>) value); // Recursive validation
+                        validate(nestedObject, nestedMap);
                     } catch (ValidationException nestedException) {
-                        // Add nested errors to the main errors map
                         nestedException.getErrors().forEach((nestedField, nestedMessage) ->
                             errors.put(field + "." + nestedField, nestedMessage));
                     }
-                    entityField.set(entity, nestedObject); // Assign the validated nested object
-                } else if (entityField.getType().isEnum()) {
-                    // Handle enum fields
-                    @SuppressWarnings({ "rawtypes", "null" })//to remove
-                    Object enumValue = Enum.valueOf((Class<Enum>) entityField.getType(), value.toString().toUpperCase());
+                    entityField.set(entity, nestedObject);
+                } else if (entityField.getType().isEnum() && value != null) {
+                    Object enumValue = EnumConversion.toEnum(entityField, value.toString());
+
                     entityField.set(entity, enumValue);
+                
                 } else {
-                    // Assign simple fields directly
                     entityField.set(entity, value);
                 }
                 
@@ -70,12 +67,9 @@ public class Validation<T> {
                 errors.put(field, "Invalid value for field: " + field);
             }
         });
-        // Validate each updated field
         updates.forEach((field, _) -> {
-            System.out.println("to validate field: "+field);
             Set<ConstraintViolation<Object>> violations = validator.validateProperty(entity, field);
             violations.forEach(violation -> errors.put(field, violation.getMessage()));
-            System.out.println("errors: "+errors);
         });
 
         if (!errors.isEmpty()) {

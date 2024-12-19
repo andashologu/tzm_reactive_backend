@@ -11,7 +11,5 @@ public class ValidationException extends RuntimeException {
         this.errors = errors;
     }
 
-    public Map<String, String> getErrors() {
-        return errors;
-    }
+    public Map<String, String> getErrors() { return errors; }
 }

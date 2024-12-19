@@ -18,15 +18,14 @@ public class Repository<T> {
     }
 
     public Mono<Map<String, Object>> updateFields(Long id, Map<String, Object> fieldsToUpdate, Class<T> entityClass, T entity) {
-        if (fieldsToUpdate.isEmpty()) {
-            return Mono.error(new IllegalArgumentException("No fields to update"));
-        }
+        if (fieldsToUpdate.isEmpty()) return Mono.error(new IllegalArgumentException("No fields to update"));
+        
     
         String tableName = getTableName(entityClass);
         StringBuilder sql = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
     
         fieldsToUpdate.forEach((key, _) -> sql.append(toSnakeCase(key)).append(" = :").append(key).append(", "));
-        sql.setLength(sql.length() - 2); // Remove trailing ", "
+        sql.setLength(sql.length() - 2);
     
         sql.append(" WHERE id = :id");
     
@@ -37,7 +36,6 @@ public class Repository<T> {
             Object value = entry.getValue();
     
             if (value instanceof Map) {
-                // Handle nested fields: serialize to JSON
                 Json serializedValue = JsonConversion.objectToJson(value);
                 spec = spec.bind(key, serializedValue);
             } else {
@@ -50,7 +48,7 @@ public class Repository<T> {
                 if (rowsUpdated == 0) {
                     return Mono.error(new IllegalArgumentException("Entity not found with id: " + id));
                 }
-                return Mono.just(fieldsToUpdate); // Return only updated fields
+                return Mono.just(fieldsToUpdate);
             });
     }
     

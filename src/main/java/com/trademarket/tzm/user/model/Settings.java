@@ -1,10 +1,14 @@
 package com.trademarket.tzm.user.model;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 
 public class Settings {
 
+    @Size(max=50, message = "Language must be at most 50 characters")
     private String language = "en";
+
+    @Size(max=10, message = "Timezone must be at most 10 characters")
     private String timezone = "UCT";
 
     @Valid

@@ -10,7 +10,6 @@ import java.util.Map;
 
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -28,7 +27,7 @@ public class UserService {
         this.customValidation = customValidation;
         this.customRepository = customRepository;
     }
-
+/*
     public Flux<UserEntity> searchUsers(String query, Boolean active) { //search fielder will need to be reimplemented since firstname and lastname are moved to a different entity
         StringBuilder sql = new StringBuilder("""
             SELECT *, similarity(username, :query) AS score
@@ -50,11 +49,11 @@ public class UserService {
         return spec.map((row, _) -> new UserEntity(
             row.get("id", Long.class),
             row.get("username", String.class),
-            row.get("email", String.class),
-            row.get("active", Boolean.class)
+            row.get("email", String.class)
         )).all();
     }
-
+*/
+    
     public Mono<UserEntity> findByUsernameOrEmail(String identifier) {
         String sql = """
             SELECT *
@@ -67,8 +66,7 @@ public class UserService {
             .map((row, _) -> new UserEntity(
                 row.get("id", Long.class),
                 row.get("username", String.class),
-                row.get("email", String.class),
-                row.get("active", Boolean.class)
+                row.get("email", String.class)
             )).one();
     }
 
@@ -90,7 +88,7 @@ public class UserService {
                     return existingUser;
                 })
                 .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(_ -> customRepository.updateFields(id, updates, UserEntity.class, existingUser))
+                .flatMap(_ -> customRepository.updateFields(id, updates, UserEntity.class, existingUser))//why pass id and existing user while the existing user is supposedly to obtain the id
             );
     }
     

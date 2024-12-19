@@ -6,9 +6,11 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import com.trademarket.tzm.user.validation.UniqueUserId;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
@@ -22,15 +24,31 @@ public class ProfileEntity {
     @UniqueUserId
     private Long userId;
 
-    @NotEmpty(message = "firstname reuired")
+    @Size(max = 50, message = "Fist name must be at most 50 characters")
+    @Pattern(regexp = "^[A-Za-z]+$", message = "First name must only contain letters")
     private String firstname;
     
+    @Pattern(regexp = "^[A-Za-z]+$", message = "Last name must only contain letters")
+    @Size(max = 50, message = "Last name must be at most 50 characters")
+    @Nullable
     private String lastname;
 
     @Column("profile_picture")
+    @Size(max = 100, message = "Url must be at most 100 characters")
     String profilePicture;
     
-    String bio, phone, website;
+    @Size(max = 255, message = "Bio must not exceed 255 characters")
+    String bio; 
+    
+    @Pattern(regexp = "^\\+?[0-9\\-\\(\\)\\s]+$", message = "Phone number can only contain digits, spaces, dashes, parentheses, and an optional leading '+'.")
+    String phone;
+   
+    @Pattern(
+        regexp = "^(https?:\\/\\/)?([\\w\\-]+\\.)+[\\w\\-]+(/[\\w\\-./?%&=]*)?$", 
+        message = "Website must be a valid URL"
+    )
+    @Size(max = 250, message = "Website must not exceed 250 characters")
+    String website;
 
     @Valid
     private Address address;
